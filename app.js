@@ -23,6 +23,7 @@
   let audioContext;
   let timerHandle;
   let wakeLock;
+  let scheduledSources = [];
   let durationSeconds = Number(durationSelect.value) * 60;
   let intervalSeconds = Number(intervalSelect.value) * 60;
   let remainingSeconds = durationSeconds;
@@ -95,19 +96,20 @@
     if (context && context.state === 'suspended') await context.resume();
   }
 
-  function playBell() {
-    if (!soundEnabled) return;
+  function playBell(startAt) {
+    if (!soundEnabled) return [];
     const context = createAudioContext();
-    if (!context) return;
+    if (!context) return [];
 
     // A meditation-class temple bell: a low wooden strike, a brief metal attack,
     // and inharmonic resonances that bloom and fade over several seconds.
-    const now = context.currentTime;
+    const now = Math.max(startAt ?? context.currentTime, context.currentTime);
     const master = context.createGain();
     master.gain.setValueAtTime(0.0001, now);
     master.gain.exponentialRampToValueAtTime(0.18, now + 0.012);
     master.gain.exponentialRampToValueAtTime(0.0001, now + 7.2);
     master.connect(context.destination);
+    const sources = [];
 
     const strikeOscillator = context.createOscillator();
     const strikeGain = context.createGain();
@@ -121,6 +123,7 @@
     strikeGain.connect(master);
     strikeOscillator.start(now);
     strikeOscillator.stop(now + 1.7);
+    sources.push(strikeOscillator);
 
     const noiseBuffer = context.createBuffer(1, Math.floor(context.sampleRate * 0.16), context.sampleRate);
     const noiseData = noiseBuffer.getChannelData(0);
@@ -141,6 +144,7 @@
     metalFilter.connect(noiseGain);
     noiseGain.connect(master);
     noiseSource.start(now);
+    sources.push(noiseSource);
 
     // Bell overtones are intentionally not integer multiples of the root.
     [
@@ -163,6 +167,40 @@
       partialGain.connect(master);
       oscillator.start(now);
       oscillator.stop(now + decay + 0.1);
+      sources.push(oscillator);
+    });
+    return sources;
+  }
+
+  function clearScheduledBells() {
+    scheduledSources.forEach((source) => {
+      try { source.stop(); } catch (_) { /* Already finished. */ }
+    });
+    scheduledSources = [];
+  }
+
+  function scheduleSessionBells() {
+    clearScheduledBells();
+    if (!soundEnabled) return;
+    const context = createAudioContext();
+    if (!context) return;
+
+    const elapsed = durationSeconds - remainingSeconds;
+    const targets = [];
+    nextBellAt = 0;
+    if (intervalSeconds > 0) {
+      for (let target = intervalSeconds; target < durationSeconds; target += intervalSeconds) {
+        if (target > elapsed) targets.push(target);
+      }
+      nextBellAt = targets[0] || 0;
+    }
+    if (durationSeconds > elapsed) targets.push(durationSeconds);
+
+    targets.forEach((target) => {
+      const wallTime = endTime - (durationSeconds - target) * 1000;
+      const secondsUntilBell = (wallTime - Date.now()) / 1000;
+      const audioTime = context.currentTime + Math.max(0, secondsUntilBell);
+      scheduledSources.push(...playBell(audioTime));
     });
   }
 
@@ -190,18 +228,12 @@
     isPaused = false;
     stopTicking();
     releaseWakeLock();
-    playBell();
     render();
   }
 
   function tick() {
     if (!isRunning) return;
     remainingSeconds = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
-    const elapsed = durationSeconds - remainingSeconds;
-    if (intervalSeconds > 0 && elapsed >= nextBellAt && remainingSeconds > 0) {
-      playBell();
-      nextBellAt = (Math.floor(elapsed / intervalSeconds) + 1) * intervalSeconds;
-    }
     if (remainingSeconds <= 0) finishSession();
     else render();
   }
@@ -222,6 +254,7 @@
     durationSelect.disabled = true;
     intervalSelect.disabled = true;
     requestWakeLock();
+    scheduleSessionBells();
     timerHandle = window.setInterval(tick, 250);
     render();
   }
@@ -231,6 +264,7 @@
     isRunning = false;
     isPaused = true;
     stopTicking();
+    clearScheduledBells();
     releaseWakeLock();
     render();
   }
@@ -239,6 +273,7 @@
     isRunning = false;
     isPaused = false;
     stopTicking();
+    clearScheduledBells();
     releaseWakeLock();
     durationSeconds = Number(durationSelect.value) * 60;
     intervalSeconds = Number(intervalSelect.value) * 60;
@@ -262,6 +297,7 @@
     soundToggle.setAttribute('aria-pressed', String(soundEnabled));
     soundToggleLabel.textContent = soundEnabled ? 'On' : 'Off';
     soundToggle.classList.toggle('is-muted', !soundEnabled);
+    if (isRunning) scheduleSessionBells();
   });
   startButton.addEventListener('click', () => {
     if (isRunning) pause();
@@ -269,7 +305,10 @@
   });
   resetButton.addEventListener('click', reset);
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && isRunning) requestWakeLock();
+    if (document.visibilityState === 'visible' && isRunning) {
+      requestWakeLock();
+      scheduleSessionBells();
+    }
   });
 
   render();

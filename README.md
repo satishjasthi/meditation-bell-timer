@@ -25,9 +25,11 @@ Then open <http://localhost:8000>.
 
 ## Browser note
 
-Mobile browsers require audio to be unlocked by a user gesture. Tap **Begin practice** to start the session and enable the bell. If an iPhone or iPad is on silent mode, the device may suppress browser audio.
+Mobile browsers require audio to be unlocked by a user gesture. Tap **Begin practice** to start the session and enable the bell. The timer pre-schedules Web Audio events, which improves reliability when a Mac tab is switched away from, but browsers can still throttle or suspend background audio.
 
-The timer uses wall-clock time, so it stays accurate if the browser briefly throttles background JavaScript. For the most reliable bells, keep the page open and the screen awake.
+A web page cannot guarantee sound while the device is locked. iPhone/iPad Safari and macOS may suspend the page or its audio context during screen lock, and GitHub Pages cannot bypass that OS restriction. For reliable lock-screen bells, the app would need to become a native iOS/macOS app using OS-level notifications or background-audio capabilities. On iPhone/iPad, silent mode can also suppress browser audio.
+
+For the most reliable web-only session, keep the page visible and prevent the screen from locking.
 
 ## License
 
