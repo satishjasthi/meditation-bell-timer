@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#102c2a" />
+    <meta name="description" content="A calm, simple meditation timer with interval bells." />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Stillpoint — Meditation Timer</title>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="./" aria-label="Stillpoint home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" role="img"><path d="M16 4c-5.3 0-9.5 4.2-9.5 9.4 0 4.1 2.5 7.6 6.1 8.9v2.1h6.8v-2.1c3.6-1.3 6.1-4.8 6.1-8.9C25.5 8.2 21.3 4 16 4Z" /><path d="M12.5 28h7M13.5 25h5" /></svg>
+          </span>
+          <span>Stillpoint</span>
+        </a>
+        <span class="header-note">A little space to return</span>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <p class="eyebrow">Meditation timer</p>
+          <h1 id="page-title">Come back to the breath.</h1>
+          <p class="intro-copy">Set a little time aside. A soft bell will gently bring you back whenever you wander.</p>
+        </section>
+
+        <section class="app-grid" aria-label="Meditation timer">
+          <article class="card settings-card">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker">Prepare</p>
+                <h2>Your practice</h2>
+              </div>
+              <span class="breath-dot" aria-hidden="true"></span>
+            </div>
+
+            <div class="setting-group">
+              <label for="duration">Meditation length</label>
+              <div class="select-wrap">
+                <select id="duration">
+                  <option value="5">5 minutes</option>
+                  <option value="10" selected>10 minutes</option>
+                  <option value="15">15 minutes</option>
+                  <option value="20">20 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                  <option value="60">60 minutes</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="setting-group">
+              <label for="interval">Bell interval</label>
+              <div class="select-wrap">
+                <select id="interval">
+                  <option value="0">No interval bells</option>
+                  <option value="1">Every 1 minute</option>
+                  <option value="5" selected>Every 5 minutes</option>
+                  <option value="10">Every 10 minutes</option>
+                  <option value="15">Every 15 minutes</option>
+                </select>
+              </div>
+              <p class="field-hint">The bell sounds at the interval, and never at the end of your session.</p>
+            </div>
+
+            <div class="sound-row">
+              <div>
+                <p class="sound-label">Bell sound</p>
+                <p class="field-hint">A soft tone made in your browser</p>
+              </div>
+              <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="true">
+                <span class="sound-icon" aria-hidden="true">◖</span>
+                <span id="sound-toggle-label">On</span>
+              </button>
+            </div>
+
+            <div class="tip">
+              <span class="tip-icon" aria-hidden="true">✦</span>
+              <p>Find a comfortable seat, soften your gaze, and let the timer do the remembering.</p>
+            </div>
+          </article>
+
+          <article class="card timer-card" aria-live="polite">
+            <div class="timer-topline">
+              <span id="session-label">Ready when you are</span>
+              <span class="session-indicator" id="session-indicator" aria-hidden="true"></span>
+            </div>
+
+            <div class="timer-visual" id="timer-visual">
+              <div class="progress-ring" id="progress-ring" aria-hidden="true">
+                <div class="timer-inner">
+                  <span class="timer-display" id="timer-display">10:00</span>
+                  <span class="timer-caption" id="timer-caption">remaining</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="status-message" id="status-message">Take a breath. There is nowhere else to be.</p>
+
+            <div class="timer-controls">
+              <button class="button button-secondary" id="reset-button" type="button">Reset</button>
+              <button class="button button-primary" id="start-button" type="button">
+                <span class="button-icon" id="start-icon" aria-hidden="true">▶</span>
+                <span id="start-label">Begin practice</span>
+              </button>
+            </div>
+            <p class="keyboard-note">You can pause at any time. Your settings stay on this device.</p>
+          </article>
+        </section>
+
+        <section class="how-it-works" aria-labelledby="how-title">
+          <p class="section-kicker">A simple rhythm</p>
+          <h2 id="how-title">The bell is a doorway, not a destination.</h2>
+          <div class="rhythm-steps">
+            <div class="rhythm-step"><span>01</span><p>Set your time</p></div>
+            <div class="rhythm-line" aria-hidden="true"></div>
+            <div class="rhythm-step"><span>02</span><p>Follow your breath</p></div>
+            <div class="rhythm-line" aria-hidden="true"></div>
+            <div class="rhythm-step"><span>03</span><p>Return gently</p></div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer"><span>Made for quiet moments.</span><span>Works offline after the first visit.</span></footer>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
