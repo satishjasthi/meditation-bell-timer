@@ -25,7 +25,7 @@ Then open <http://localhost:8000>.
 
 ## Browser note
 
-Mobile browsers require audio to be unlocked by a user gesture. Tap **Begin** to start the session and enable the bell. Stillpoint starts a real HTML media element from that tap and feeds it continuous silent frames plus the scheduled bell tones. This is more likely to continue when an iPhone screen locks or a Mac tab is switched away from than page-timer callbacks alone.
+Mobile browsers require audio to be unlocked by a user gesture. Tap **Begin** to start the session and enable the bell. Stillpoint starts a real HTML media element from that tap and feeds it continuous near-silent frames plus the scheduled bell tones. It verifies that the stream has a live audio track, logs the media state with the `[stillpoint-media]` prefix, and retries with an object URL on older Safari builds before falling back to direct Web Audio.
 
 This remains best-effort: Safari and the operating system may still interrupt a live `MediaStream`, especially when the page is force-quit, another app takes audio priority, Low Power Mode intervenes, or the device is locked for a long period. On iPhone/iPad, silent mode can also suppress browser audio. For guaranteed lock-screen bells, the app would need native iOS/macOS background-audio or notification capabilities.
 

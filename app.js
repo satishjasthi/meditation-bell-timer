@@ -34,6 +34,7 @@
   let isPaused = false;
   let soundEnabled = true;
   let mediaDestination;
+  let mediaObjectUrl;
   let mediaSilenceSource;
   let mediaPlaybackActive = false;
   let mediaStopHandle;
@@ -103,32 +104,64 @@
 
   function prepareMediaOutput() {
     const context = createAudioContext();
-    if (!context || !mediaAudio || !context.createMediaStreamDestination) return null;
+    if (!context || !mediaAudio) return null;
+    if (typeof context.createMediaStreamDestination !== 'function') {
+      console.warn('[stillpoint-media] createMediaStreamDestination is unavailable; using direct Web Audio output.');
+      return null;
+    }
     if (!mediaDestination) {
-      mediaDestination = context.createMediaStreamDestination();
-      mediaAudio.srcObject = mediaDestination.stream;
-      mediaAudio.loop = false;
-      mediaAudio.volume = 1;
+      try {
+        mediaDestination = context.createMediaStreamDestination();
+        const stream = mediaDestination.stream;
+        if ('srcObject' in mediaAudio) {
+          mediaAudio.srcObject = stream;
+        } else {
+          mediaObjectUrl = URL.createObjectURL(stream);
+          mediaAudio.src = mediaObjectUrl;
+          mediaAudio.load();
+        }
+        mediaAudio.loop = false;
+        mediaAudio.volume = 1;
+        mediaAudio.muted = false;
 
-      // Keep real, silent audio frames flowing through the media element. Bell
-      // nodes are mixed into the same destination when their times arrive.
-      mediaSilenceSource = context.createOscillator();
-      const silenceGain = context.createGain();
-      mediaSilenceSource.frequency.value = 20;
-      silenceGain.gain.value = 0;
-      mediaSilenceSource.connect(silenceGain);
-      silenceGain.connect(mediaDestination);
-      mediaSilenceSource.start();
+        // Keep real, nearly silent audio frames flowing through the media
+        // element. A zero-gain source can be optimized away by some engines.
+        mediaSilenceSource = context.createOscillator();
+        const silenceGain = context.createGain();
+        mediaSilenceSource.frequency.value = 20;
+        silenceGain.gain.value = 0.00001;
+        mediaSilenceSource.connect(silenceGain);
+        silenceGain.connect(mediaDestination);
+        mediaSilenceSource.start();
+
+        const tracks = stream.getAudioTracks();
+        if (!tracks.length || tracks[0].readyState !== 'live') {
+          throw new Error('MediaStream has no live audio track');
+        }
+        console.info('[stillpoint-media] stream ready', {
+          tracks: tracks.length,
+          trackState: tracks[0].readyState,
+          source: 'srcObject' in mediaAudio ? 'srcObject' : 'object-url',
+        });
+      } catch (error) {
+        console.warn('[stillpoint-media] stream setup failed', error);
+        try { if (mediaSilenceSource) mediaSilenceSource.stop(); } catch (_) { /* Already stopped. */ }
+        mediaDestination = undefined;
+        mediaSilenceSource = undefined;
+        return null;
+      }
     }
     return mediaDestination;
   }
 
   function startMediaPlayback() {
-    if (!prepareMediaOutput()) return Promise.resolve(false);
+    const destination = prepareMediaOutput();
+    if (!destination) return Promise.resolve(false);
     if (!mediaAudio.paused) {
       mediaPlaybackActive = true;
       return Promise.resolve(true);
     }
+
     const playback = mediaAudio.play();
     if (!playback || typeof playback.then !== 'function') {
       mediaPlaybackActive = true;
@@ -136,10 +169,28 @@
     }
     return playback.then(() => {
       mediaPlaybackActive = true;
+      console.info('[stillpoint-media] audio element is playing');
       return true;
-    }).catch(() => {
-      mediaPlaybackActive = false;
-      return false;
+    }).catch(async (error) => {
+      console.warn('[stillpoint-media] srcObject playback failed', error);
+      // Older Safari builds may expose srcObject but only play a MediaStream
+      // through an object URL. Retry that form before using direct Web Audio.
+      try {
+        if (typeof URL.createObjectURL !== 'function') throw error;
+        mediaAudio.srcObject = null;
+        if (mediaObjectUrl) URL.revokeObjectURL(mediaObjectUrl);
+        mediaObjectUrl = URL.createObjectURL(destination.stream);
+        mediaAudio.src = mediaObjectUrl;
+        mediaAudio.load();
+        await mediaAudio.play();
+        mediaPlaybackActive = true;
+        console.info('[stillpoint-media] object-url playback is playing');
+        return true;
+      } catch (retryError) {
+        mediaPlaybackActive = false;
+        console.warn('[stillpoint-media] object-url playback failed; using direct Web Audio output', retryError);
+        return false;
+      }
     });
   }
 
