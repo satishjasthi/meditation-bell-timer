@@ -7,7 +7,7 @@ A calm, responsive meditation timer for GitHub Pages. Choose a meditation length
 - 5–60 minute meditation sessions
 - Optional bells every 1, 5, 10, or 15 minutes
 - Pause, continue, reset, and session-complete bell
-- Bell generated locally with the Web Audio API — no audio files or tracking
+- Deep, resonant monk-style temple bell generated locally with the Web Audio API — no audio files or tracking
 - Responsive layout for iPhone, iPad, and Mac
 - Remembers your last duration and interval choice on the device
 - Uses the Screen Wake Lock API when supported

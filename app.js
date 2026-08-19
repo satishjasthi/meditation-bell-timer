@@ -99,23 +99,70 @@
     if (!soundEnabled) return;
     const context = createAudioContext();
     if (!context) return;
+
+    // A meditation-class temple bell: a low wooden strike, a brief metal attack,
+    // and inharmonic resonances that bloom and fade over several seconds.
     const now = context.currentTime;
     const master = context.createGain();
     master.gain.setValueAtTime(0.0001, now);
-    master.gain.exponentialRampToValueAtTime(0.22, now + 0.015);
-    master.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
+    master.gain.exponentialRampToValueAtTime(0.18, now + 0.012);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 7.2);
     master.connect(context.destination);
 
-    [392, 587, 784].forEach((frequency, index) => {
+    const strikeOscillator = context.createOscillator();
+    const strikeGain = context.createGain();
+    strikeOscillator.type = 'sine';
+    strikeOscillator.frequency.setValueAtTime(118, now);
+    strikeOscillator.frequency.exponentialRampToValueAtTime(78, now + 0.18);
+    strikeGain.gain.setValueAtTime(0.0001, now);
+    strikeGain.gain.exponentialRampToValueAtTime(0.42, now + 0.008);
+    strikeGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+    strikeOscillator.connect(strikeGain);
+    strikeGain.connect(master);
+    strikeOscillator.start(now);
+    strikeOscillator.stop(now + 1.7);
+
+    const noiseBuffer = context.createBuffer(1, Math.floor(context.sampleRate * 0.16), context.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let index = 0; index < noiseData.length; index += 1) {
+      noiseData[index] = (Math.random() * 2 - 1) * (1 - index / noiseData.length);
+    }
+    const noiseSource = context.createBufferSource();
+    const metalFilter = context.createBiquadFilter();
+    const noiseGain = context.createGain();
+    noiseSource.buffer = noiseBuffer;
+    metalFilter.type = 'bandpass';
+    metalFilter.frequency.value = 2200;
+    metalFilter.Q.value = 2.4;
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.34, now + 0.004);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+    noiseSource.connect(metalFilter);
+    metalFilter.connect(noiseGain);
+    noiseGain.connect(master);
+    noiseSource.start(now);
+
+    // Bell overtones are intentionally not integer multiples of the root.
+    [
+      { ratio: 1, gain: 0.72, decay: 7.0, detune: 0 },
+      { ratio: 2.01, gain: 0.34, decay: 5.8, detune: -3 },
+      { ratio: 2.76, gain: 0.24, decay: 5.1, detune: 2 },
+      { ratio: 4.07, gain: 0.14, decay: 4.1, detune: -2 },
+      { ratio: 5.43, gain: 0.09, decay: 3.4, detune: 4 },
+      { ratio: 7.12, gain: 0.045, decay: 2.3, detune: -5 },
+    ].forEach(({ ratio, gain, decay, detune }) => {
       const oscillator = context.createOscillator();
       const partialGain = context.createGain();
-      oscillator.type = index === 0 ? 'sine' : 'triangle';
-      oscillator.frequency.value = frequency;
-      partialGain.gain.value = [0.7, 0.3, 0.14][index];
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 146.8 * ratio;
+      oscillator.detune.value = detune;
+      partialGain.gain.setValueAtTime(0.0001, now);
+      partialGain.gain.exponentialRampToValueAtTime(gain, now + 0.014);
+      partialGain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
       oscillator.connect(partialGain);
       partialGain.connect(master);
       oscillator.start(now);
-      oscillator.stop(now + 2.5);
+      oscillator.stop(now + decay + 0.1);
     });
   }
 
