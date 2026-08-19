@@ -4,7 +4,7 @@
   "description": "A calm meditation timer with gentle interval bells.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#081b1c",
-  "theme_color": "#102c2a",
+  "background_color": "#080808",
+  "theme_color": "#080808",
   "icons": []
 }

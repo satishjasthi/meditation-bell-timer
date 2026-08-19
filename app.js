@@ -55,31 +55,31 @@
     timerCard.classList.toggle('is-running', isRunning);
 
     if (!isRunning && !isPaused && remainingSeconds === durationSeconds) {
-      sessionLabel.textContent = 'Ready when you are';
-      timerCaption.textContent = 'remaining';
-      startLabel.textContent = 'Begin practice';
+      sessionLabel.textContent = 'Ready';
+      timerCaption.textContent = 'left';
+      startLabel.textContent = 'Begin';
       startIcon.textContent = '▶';
-      statusMessage.textContent = 'Take a breath. There is nowhere else to be.';
+      statusMessage.textContent = 'Breathe in. Breathe out.';
     } else if (isPaused) {
-      sessionLabel.textContent = 'Practice paused';
-      timerCaption.textContent = 'remaining';
+      sessionLabel.textContent = 'Paused';
+      timerCaption.textContent = 'left';
       startLabel.textContent = 'Continue';
       startIcon.textContent = '▶';
-      statusMessage.textContent = 'Whenever you are ready, return to the breath.';
+      statusMessage.textContent = 'Return when ready.';
     } else if (isRunning) {
-      sessionLabel.textContent = 'Practice in progress';
-      timerCaption.textContent = 'remaining';
+      sessionLabel.textContent = 'In practice';
+      timerCaption.textContent = 'left';
       startLabel.textContent = 'Pause';
       startIcon.textContent = 'Ⅱ';
       statusMessage.textContent = intervalSeconds && nextBellAt - (durationSeconds - remainingSeconds) <= 2
-        ? 'A bell will gently mark your next return.'
-        : 'Notice the breath as it is, without changing it.';
+        ? 'A bell will call you back.'
+        : 'Stay with the breath.';
     } else {
-      sessionLabel.textContent = 'Practice complete';
-      timerCaption.textContent = 'complete';
-      startLabel.textContent = 'Begin again';
+      sessionLabel.textContent = 'Complete';
+      timerCaption.textContent = 'done';
+      startLabel.textContent = 'Again';
       startIcon.textContent = '↻';
-      statusMessage.textContent = 'Well done. Notice how you feel before moving on.';
+      statusMessage.textContent = 'Be here now.';
     }
   }
 
