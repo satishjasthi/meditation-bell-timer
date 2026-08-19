@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stillpoint-v3';
+const CACHE_NAME = 'stillpoint-v4';
 const APP_SHELL = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

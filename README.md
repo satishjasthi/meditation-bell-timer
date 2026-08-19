@@ -10,7 +10,7 @@ A calm, responsive meditation timer for GitHub Pages. Choose a meditation length
 - Deep, resonant monk-style temple bell generated locally with the Web Audio API — no audio files or tracking
 - Responsive layout for iPhone, iPad, and Mac
 - Remembers your last duration and interval choice on the device
-- Uses the Screen Wake Lock API when supported
+- Uses a user-started HTML media stream carrying continuous silence and scheduled bells for better background playback attempts
 - Installable as a simple standalone web app on supported browsers
 
 ## Run locally
@@ -25,11 +25,11 @@ Then open <http://localhost:8000>.
 
 ## Browser note
 
-Mobile browsers require audio to be unlocked by a user gesture. Tap **Begin practice** to start the session and enable the bell. The timer pre-schedules Web Audio events, which improves reliability when a Mac tab is switched away from, but browsers can still throttle or suspend background audio.
+Mobile browsers require audio to be unlocked by a user gesture. Tap **Begin** to start the session and enable the bell. Stillpoint starts a real HTML media element from that tap and feeds it continuous silent frames plus the scheduled bell tones. This is more likely to continue when an iPhone screen locks or a Mac tab is switched away from than page-timer callbacks alone.
 
-A web page cannot guarantee sound while the device is locked. iPhone/iPad Safari and macOS may suspend the page or its audio context during screen lock, and GitHub Pages cannot bypass that OS restriction. For reliable lock-screen bells, the app would need to become a native iOS/macOS app using OS-level notifications or background-audio capabilities. On iPhone/iPad, silent mode can also suppress browser audio.
+This remains best-effort: Safari and the operating system may still interrupt a live `MediaStream`, especially when the page is force-quit, another app takes audio priority, Low Power Mode intervenes, or the device is locked for a long period. On iPhone/iPad, silent mode can also suppress browser audio. For guaranteed lock-screen bells, the app would need native iOS/macOS background-audio or notification capabilities.
 
-For the most reliable web-only session, keep the page visible and prevent the screen from locking.
+For the most reliable web-only session, start the timer with the page open, keep Safari running, and do not force-quit it.
 
 ## License
 

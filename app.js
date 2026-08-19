@@ -19,6 +19,7 @@
   const statusMessage = document.querySelector('#status-message');
   const progressRing = document.querySelector('#progress-ring');
   const timerCard = document.querySelector('.timer-card');
+  const mediaAudio = document.querySelector('#media-audio');
 
   let audioContext;
   let timerHandle;
@@ -32,6 +33,10 @@
   let isRunning = false;
   let isPaused = false;
   let soundEnabled = true;
+  let mediaDestination;
+  let mediaSilenceSource;
+  let mediaPlaybackActive = false;
+  let mediaStopHandle;
 
   const savedDuration = localStorage.getItem('stillpoint-duration');
   const savedInterval = localStorage.getItem('stillpoint-interval');
@@ -96,6 +101,55 @@
     if (context && context.state === 'suspended') await context.resume();
   }
 
+  function prepareMediaOutput() {
+    const context = createAudioContext();
+    if (!context || !mediaAudio || !context.createMediaStreamDestination) return null;
+    if (!mediaDestination) {
+      mediaDestination = context.createMediaStreamDestination();
+      mediaAudio.srcObject = mediaDestination.stream;
+      mediaAudio.loop = false;
+      mediaAudio.volume = 1;
+
+      // Keep real, silent audio frames flowing through the media element. Bell
+      // nodes are mixed into the same destination when their times arrive.
+      mediaSilenceSource = context.createOscillator();
+      const silenceGain = context.createGain();
+      mediaSilenceSource.frequency.value = 20;
+      silenceGain.gain.value = 0;
+      mediaSilenceSource.connect(silenceGain);
+      silenceGain.connect(mediaDestination);
+      mediaSilenceSource.start();
+    }
+    return mediaDestination;
+  }
+
+  function startMediaPlayback() {
+    if (!prepareMediaOutput()) return Promise.resolve(false);
+    if (!mediaAudio.paused) {
+      mediaPlaybackActive = true;
+      return Promise.resolve(true);
+    }
+    const playback = mediaAudio.play();
+    if (!playback || typeof playback.then !== 'function') {
+      mediaPlaybackActive = true;
+      return Promise.resolve(true);
+    }
+    return playback.then(() => {
+      mediaPlaybackActive = true;
+      return true;
+    }).catch(() => {
+      mediaPlaybackActive = false;
+      return false;
+    });
+  }
+
+  function stopMediaPlayback() {
+    window.clearTimeout(mediaStopHandle);
+    mediaStopHandle = undefined;
+    mediaPlaybackActive = false;
+    if (mediaAudio) mediaAudio.pause();
+  }
+
   function playBell(startAt) {
     if (!soundEnabled) return [];
     const context = createAudioContext();
@@ -108,7 +162,8 @@
     master.gain.setValueAtTime(0.0001, now);
     master.gain.exponentialRampToValueAtTime(0.18, now + 0.012);
     master.gain.exponentialRampToValueAtTime(0.0001, now + 7.2);
-    master.connect(context.destination);
+    const output = mediaPlaybackActive && mediaDestination ? mediaDestination : context.destination;
+    master.connect(output);
     const sources = [];
 
     const strikeOscillator = context.createOscillator();
@@ -228,6 +283,11 @@
     isPaused = false;
     stopTicking();
     releaseWakeLock();
+    if (mediaPlaybackActive) {
+      mediaStopHandle = window.setTimeout(stopMediaPlayback, 7600);
+    } else {
+      stopMediaPlayback();
+    }
     render();
   }
 
@@ -239,7 +299,11 @@
   }
 
   async function beginOrResume() {
+    // Call play() before the first await so iOS can associate it with the
+    // user's Begin tap and classify this as intentional media playback.
+    const mediaPlayback = startMediaPlayback();
     await unlockAudio();
+    await mediaPlayback;
     if (isPaused) {
       endTime = Date.now() + remainingSeconds * 1000;
     } else {
@@ -265,6 +329,7 @@
     isPaused = true;
     stopTicking();
     clearScheduledBells();
+    stopMediaPlayback();
     releaseWakeLock();
     render();
   }
@@ -274,6 +339,7 @@
     isPaused = false;
     stopTicking();
     clearScheduledBells();
+    stopMediaPlayback();
     releaseWakeLock();
     durationSeconds = Number(durationSelect.value) * 60;
     intervalSeconds = Number(intervalSelect.value) * 60;
@@ -297,7 +363,14 @@
     soundToggle.setAttribute('aria-pressed', String(soundEnabled));
     soundToggleLabel.textContent = soundEnabled ? 'On' : 'Off';
     soundToggle.classList.toggle('is-muted', !soundEnabled);
-    if (isRunning) scheduleSessionBells();
+    if (isRunning) {
+      if (soundEnabled) {
+        startMediaPlayback().then(scheduleSessionBells);
+      } else {
+        clearScheduledBells();
+        stopMediaPlayback();
+      }
+    }
   });
   startButton.addEventListener('click', () => {
     if (isRunning) pause();
